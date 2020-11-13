@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="timerId" id="timerId" content="">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
+
+    <title>WindMonitorApp</title>
+</head>
+
+<body>
+
+    <canvas id="myChart" width="1000" height="300"></canvas>
+    <script>
+        const ctx = document.getElementById('myChart').getContext('2d');
+
+        async function getData() {
+            const res = await fetch('./data.json')
+            const data = await res.json()
+            return data
+        }
+
+        getData().then(response => {
+            setData(response)
+        })
+
+        function setData(data) {
+
+            //dropdown setup
+            let dropdown = document.getElementById('dropdown')
+            for (var i = 0; i < data.days.length; i++) {
+                option = document.createElement('option')
+                option.text = data.days[i].date
+                option.value = data.days[i].date
+                option.id = i
+                dropdown.add(option)
+            }
+            var index = dropdown.options.selectedIndex - 1
+            refreshBtn.style.visibility = "hidden"
+            getChart()
+        }
+
+        function getChart(dayData, windData, timeData) {
+            const myChart = new Chart(ctx, {
+                //line chart
+                type: 'line',
+                data: {
+                    labels: timeData,
+                    datasets: [{
+                        label: 'WindSpeed(km/h)',
+                        data: windData,
+                        fill: true,
+                        backgroundColor: 'rgba(0, 0, 255, 0.4)',
+                        borderColor: 'rgba(0, 0, 255, 0.8)',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        lineTension: 0.2,
+                    }]
+                },
+                options: {
+                    events: [],
+                    animation: { duration: 0 },
+                    responsive: true,
+                    title: { display: true, text: 'WindSpeedChart ' + dayData },
+                    scales: {
+                        yAxes: [{ ticks: { beginAtZero: true } }],
+                        xAxes: [{ display: true }]
+                    }
+                }
+            })
+
+            return myChart
+        }
+
+        function refreshChart(index) {
+            const timerId = document.getElementById('timerId')
+            timerId.content = setInterval(refresh, 10000, index)
+        }
+
+        function stopRefreshing(id) {
+            clearInterval(id)
+            const timerId = document.getElementById('timerId')
+            timerId.content = ""
+        }
+
+        function refresh(index) {
+            getData().then(response => {
+                console.log('refresh')
+                getChart(response.days[index].date, response.days[index].windSpeed, response.days[index].time)
+            })
+
+        }
+
+        function dropdownChange(param) {
+            const units = document.getElementById('units').options
+            const unit = units[units.selectedIndex].value
+            const timerId = document.getElementById('timerId').content
+            const refreshBtn = document.getElementById('refreshBtn')
+
+            const index = param.options.selectedIndex
+            if (index != 0) {
+                const index = param.options.selectedIndex - 1
+
+                const request = new XMLHttpRequest()
+                request.open('get', 'data.json')
+                request.onload = () => {
+
+                    function setGraph(request,index,unit){
+                        json = JSON.parse(request.responseText)
+                        getChart(json.days[index].date, json.days[index].windSpeed, json.days[index].time)
+                    }
+
+                    function stopTimer(timerId){
+                        if (timerId != "") {
+                            stopRefreshing(timerId)
+                        }
+                    }
+
+                    if (unit == 1) {
+                        json = JSON.parse(request.responseText)
+                        getChart(json.days[index].date, json.days[index].windSpeed, json.days[index].time)
+
+                        if (json.days.length - 1 == index) {
+                            return timer = refreshChart(index)
+                        } else {
+                            if (timerId != "") {
+                                stopRefreshing(timerId)
+                            }
+                        }
+                    } else if (unit == 6) {
+                        json = JSON.parse(request.responseText)
+                        newJson = reduceData(json.days[index], unit)
+                        getChart(newJson.date, newJson.windSpeed, newJson.time)
+                        if (timerId != "") {
+                            stopRefreshing(timerId)
+                        }
+                    } else if (unit == 30) {
+                        json = JSON.parse(request.responseText)
+                        newJson = reduceData(json.days[index], unit)
+                        getChart(newJson.date, newJson.windSpeed, newJson.time)
+                        if (timerId != "") {
+                            stopRefreshing(timerId)
+                        }
+                    } else if (unit == 90) {
+                        json = JSON.parse(request.responseText)
+                        newJson = reduceData(json.days[index], unit)
+                        getChart(newJson.date, newJson.windSpeed, newJson.time)
+                        if (timerId != "") {
+                            stopRefreshing(timerId)
+                        }
+                    }
+                    
+                    if (index == json.days.length - 1 && unit != 1) {
+                        refreshBtn.style.visibility = "visible"
+                    } else { refreshBtn.style.visibility = "hidden" }
+                }
+
+                request.send()
+            } else {
+                getChart()
+                refreshBtn.style.visibility = "hidden"
+            }
+        }
+
+        function unitChange(param) {
+            const units = param.options[param.options.selectedIndex].value
+            const index = document.getElementById('dropdown')
+            dropdownChange(index)
+        }
+
+        function reduceData(data, unit) {
+            const newData = { "date": data.date, "windSpeed": [], "time": [] }
+            var counter = 0
+            var buffer = 0
+            for (let i = 0; i < data.time.length; i++) {
+                buffer += data.windSpeed[i]
+                counter += 1
+                if (counter == unit) {
+                    var result = (+(buffer / unit).toFixed(2))
+                    newData.windSpeed.push(result)
+                    newData.time.push(data.time[i])
+                    buffer = 0
+                    counter = 0
+                }
+            }
+            return newData
+        }
+
+    </script>
+
+    <br>
+    <select name="days" id="dropdown" onchange="dropdownChange(this)">
+        <option value="default">Zvol datum</option>
+    </select>
+
+    <select name="units" id="units" onchange="unitChange(this)">
+        <option value="1">10 sekund</option>
+        <option value="6">1 minuta</option>
+        <option value="30">5 minut</option>
+        <option value="90">15 minut</option>
+    </select>
+
+    <button onclick="dropdownChange(document.getElementById('dropdown'))" id="refreshBtn">Aktualizuj</button>
+
+
+
+</body>
+
+</html>
