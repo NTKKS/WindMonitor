@@ -100,7 +100,9 @@ async function getWindSpeedAverage() {
     .then(body => 
         parseString(body, function (err, result) {
             wind = result.status.windspeed[0]
-            windData.push(parseFloat(wind))
+            //console.log(wind*3.6)
+            //*3.6 to convert from m/s to km/h
+            windData.push(parseFloat(wind*3.6))
             if(windData.length==10){
                 var sum = 0.0
                 for (let i = 0; i < windData.length; i++) {
@@ -108,6 +110,7 @@ async function getWindSpeedAverage() {
                 }
                 var result = (+(sum/10).toFixed(2))
                 logData(result)
+                //console.log(result)
                 sum = 0
                 windData = []
             }
