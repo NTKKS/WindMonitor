@@ -31,6 +31,8 @@ const customDate = (days[dayName]+" "+day+"/"+(month+1)+"/"+year)
 
 var index = ""
 var windData = []
+temperature = "NaN"
+windChill = "NaN"
 
 const data = loadJSON('data.json')
 const dataCount = data.days.length
@@ -44,7 +46,7 @@ if(data.days[dataCount-1].date==""){
 //start new day 
 }else if(data.days[dataCount-1].date!=customDate){
     const newDay = {
-        "date":customDate,"windSpeed":[],"time":[]
+        "date":customDate,"windSpeed":[],"temp":[],"time":[]
     }
     data.days.push(newDay)
     saveJSON('data.json', data)
@@ -69,30 +71,19 @@ function saveJSON(filename = '', json = '""') {
 }
 
 
-function logData(wind){
+function logData(wind,temp){
     //take existing data
     const data = loadJSON('data.json')
     //add new data
     data.days[index].windSpeed.push(wind)
+    data.days[index].temp.push(temp)
     data.days[index].time.push(time)
     
     //save updated file
     saveJSON('data.json', data)
 }
 
-//setInterval(getWindSpeed,1000)
 setInterval(getWindSpeedAverage,1000)
-
-async function getWindSpeed() {
-    await fetch('http://172.16.2.130/status.xml')
-    .then(res => res.text())
-    .then(body => 
-        parseString(body, function (err, result) {
-            wind = result.status.windspeed[0]
-            logData(parseFloat(wind))
-    }))
-    .catch(err => console.error(err))
-}
 
 async function getWindSpeedAverage() {
     await fetch('http://172.16.2.130/status.xml')
@@ -100,6 +91,8 @@ async function getWindSpeedAverage() {
     .then(body => 
         parseString(body, function (err, result) {
             wind = result.status.windspeed[0]
+            temperature = result.status.temperature[0]
+            windChill = result.status.windchill[0]
             //console.log(wind*3.6)
             //*3.6 to convert from m/s to km/h
             windData.push(parseFloat(wind*3.6))
@@ -109,7 +102,7 @@ async function getWindSpeedAverage() {
                     sum += windData[i]                 
                 }
                 var result = (+(sum/10).toFixed(2))
-                logData(result)
+                logData(result,parseFloat(temperature))
                 //console.log(result)
                 sum = 0
                 windData = []
@@ -118,6 +111,9 @@ async function getWindSpeedAverage() {
     .catch(err => console.error(err))
 }
 
-app.listen(process.env.PORT || 5000, () => {
+//local port
+//app.listen(process.env.PORT || 5000, () => {
+//LAN accesible
+app.listen(5000, '172.16.2.109', () => {
     //console.log('Listening on port: 5000')
 })

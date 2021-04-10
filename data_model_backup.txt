@@ -2,7 +2,7 @@
     "days":[
 
         {
-            "date":"","windSpeed":[],"time":[]
+            "date":"","windSpeed":[], "temp":[], "time":[]
         }
 
     ] 

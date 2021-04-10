@@ -12,11 +12,30 @@
     <title>WindMonitorApp</title>
 </head>
 
-<body>
+<body style="width: 1200px; margin: auto; padding: 30px; overflow: scroll;">
 
-    <canvas id="myChart" width="1000" height="300"></canvas>
+    <canvas id="WindChart" width="1000" height="300"></canvas>
+
+    <br>
+    <select name="days" id="dropdown" onchange="dropdownChange(this)">
+        <option value="default">Zvol datum</option>
+    </select>
+
+    <select name="units" id="units" onchange="unitChange(this)">
+        <option value="1">10 sekund</option>
+        <option value="6">1 minuta</option>
+        <option value="30">5 minut</option>
+        <option value="90">15 minut</option>
+    </select>
+
+    <button onclick="dropdownChange(document.getElementById('dropdown'))" id="refreshBtn">Aktualizuj</button>
+
+    <canvas id="TempChart" width="1000" height="300"></canvas>
+
     <script>
-        const ctx = document.getElementById('myChart').getContext('2d');
+        
+        const ctx = document.getElementById('WindChart').getContext('2d');
+        const ctx2 = document.getElementById('TempChart').getContext('2d');
 
         async function getData() {
             const res = await fetch('./data.json')
@@ -36,16 +55,17 @@
                 option = document.createElement('option')
                 option.text = data.days[i].date
                 option.value = data.days[i].date
-                option.id = i
+                option.id = i+1
                 dropdown.add(option)
             }
-            var index = dropdown.options.selectedIndex - 1
             refreshBtn.style.visibility = "hidden"
-            getChart()
+            getWindChart()
+            getTempChart()
         }
 
-        function getChart(dayData, windData, timeData) {
-            const myChart = new Chart(ctx, {
+        //Wind chart setup
+        function getWindChart(dayData, windData, timeData) {
+            const WindChart = new Chart(ctx, {
                 //line chart
                 type: 'line',
                 data: {
@@ -68,12 +88,46 @@
                     title: { display: true, text: 'WindSpeedChart ' + dayData },
                     scales: {
                         yAxes: [{ ticks: { beginAtZero: true } }],
-                        xAxes: [{ display: true }]
+                        xAxes: [{ display: true,ticks:{maxTicksLimit: 15}}]
                     }
                 }
             })
 
-            return myChart
+            return WindChart
+        }
+
+        //Temperature chart setup
+        function getTempChart(dayData, tempData, timeData) {
+            const TempChart = new Chart(ctx2, {
+                //line chart
+                type: 'line',
+                data: {
+                    labels: timeData,
+                    datasets: [{
+                        label: 'Temperature(°C)',
+                        data: tempData,
+                        fill: true,
+                        backgroundColor: 'rgba(255, 0, 0, 0.4)',
+                        borderColor: 'rgba(255, 0, 0, 0.8)',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        lineTension: 0.2,
+                    }]
+                },
+                options: {
+                    events: [],
+                    animation: { duration: 0 },
+                    responsive: true,
+                    title: { display: true, text: 'TemperatureChart ' + dayData },
+                    scales: {
+                        yAxes: [{ ticks: { beginAtZero: true,suggestedMin: -7,
+                    suggestedMax: 28 } }],
+                        xAxes: [{ display: true, ticks:{maxTicksLimit: 15} }]
+                    }
+                }
+            })
+
+            return TempChart
         }
 
         function refreshChart(index) {
@@ -90,7 +144,8 @@
         function refresh(index) {
             getData().then(response => {
                 console.log('refresh')
-                getChart(response.days[index].date, response.days[index].windSpeed, response.days[index].time)
+                getWindChart(response.days[index].date, response.days[index].windSpeed, response.days[index].time)
+                getTempChart(response.days[index].date, response.days[index].temp, response.days[index].time)
             })
 
         }
@@ -111,7 +166,8 @@
 
                     function setGraph(request,index,unit){
                         json = JSON.parse(request.responseText)
-                        getChart(json.days[index].date, json.days[index].windSpeed, json.days[index].time)
+                        getWindChart(json.days[index].date, json.days[index].windSpeed, json.days[index].time)
+                        getTempChart(json.days[index].date, json.days[index].temp, json.days[index].time)
                     }
 
                     function stopTimer(timerId){
@@ -122,7 +178,8 @@
 
                     if (unit == 1) {
                         json = JSON.parse(request.responseText)
-                        getChart(json.days[index].date, json.days[index].windSpeed, json.days[index].time)
+                        getWindChart(json.days[index].date, json.days[index].windSpeed, json.days[index].time)
+                        getTempChart(json.days[index].date, json.days[index].temp, json.days[index].time)
 
                         if (json.days.length - 1 == index) {
                             return timer = refreshChart(index)
@@ -134,21 +191,24 @@
                     } else if (unit == 6) {
                         json = JSON.parse(request.responseText)
                         newJson = reduceData(json.days[index], unit)
-                        getChart(newJson.date, newJson.windSpeed, newJson.time)
+                        getWindChart(newJson.date, newJson.windSpeed, newJson.time)
+                        getTempChart(newJson.date, newJson.temp, newJson.time)
                         if (timerId != "") {
                             stopRefreshing(timerId)
                         }
                     } else if (unit == 30) {
                         json = JSON.parse(request.responseText)
                         newJson = reduceData(json.days[index], unit)
-                        getChart(newJson.date, newJson.windSpeed, newJson.time)
+                        getWindChart(newJson.date, newJson.windSpeed, newJson.time)
+                        getTempChart(newJson.date, newJson.temp, newJson.time)
                         if (timerId != "") {
                             stopRefreshing(timerId)
                         }
                     } else if (unit == 90) {
                         json = JSON.parse(request.responseText)
                         newJson = reduceData(json.days[index], unit)
-                        getChart(newJson.date, newJson.windSpeed, newJson.time)
+                        getWindChart(newJson.date, newJson.windSpeed, newJson.time)
+                        getTempChart(newJson.date, newJson.temp, newJson.time)
                         if (timerId != "") {
                             stopRefreshing(timerId)
                         }
@@ -161,7 +221,8 @@
 
                 request.send()
             } else {
-                getChart()
+                getWindChart()
+                getTempChart()
                 refreshBtn.style.visibility = "hidden"
             }
         }
@@ -173,17 +234,22 @@
         }
 
         function reduceData(data, unit) {
-            const newData = { "date": data.date, "windSpeed": [], "time": [] }
+            const newData = { "date": data.date,"windSpeed":[], "time":[], "temp":[], "time":[] }
             var counter = 0
-            var buffer = 0
+            var bufferWind = 0
+            var bufferTemp = 0
             for (let i = 0; i < data.time.length; i++) {
-                buffer += data.windSpeed[i]
+                bufferWind += data.windSpeed[i]
+                bufferTemp += data.temp[i]
                 counter += 1
                 if (counter == unit) {
-                    var result = (+(buffer / unit).toFixed(2))
-                    newData.windSpeed.push(result)
+                    var windResult = (+(bufferWind / unit).toFixed(2))
+                    newData.windSpeed.push(windResult)
                     newData.time.push(data.time[i])
-                    buffer = 0
+                    var tempResult = (+(bufferTemp / unit).toFixed(2))
+                    newData.temp.push(tempResult)
+                    bufferWind = 0
+                    bufferTemp = 0
                     counter = 0
                 }
             }
@@ -191,22 +257,6 @@
         }
 
     </script>
-
-    <br>
-    <select name="days" id="dropdown" onchange="dropdownChange(this)">
-        <option value="default">Zvol datum</option>
-    </select>
-
-    <select name="units" id="units" onchange="unitChange(this)">
-        <option value="1">10 sekund</option>
-        <option value="6">1 minuta</option>
-        <option value="30">5 minut</option>
-        <option value="90">15 minut</option>
-    </select>
-
-    <button onclick="dropdownChange(document.getElementById('dropdown'))" id="refreshBtn">Aktualizuj</button>
-
-
 
 </body>
 
