@@ -36,6 +36,13 @@ windChill = "NaN"
 
 const data = loadJSON('data.json')
 const dataCount = data.days.length
+
+//remove old data
+const count = 10
+if(dataCount>count){
+    removeOldData(count,data)
+}
+
 //init fresh json file
 if(data.days[dataCount-1].date==""){
     data.days[dataCount-1].date = customDate
@@ -53,7 +60,6 @@ if(data.days[dataCount-1].date==""){
     index = (dataCount-1)
 }
 
-
 //load function
 function loadJSON(filename = ''){
     return JSON.parse(
@@ -70,6 +76,16 @@ function saveJSON(filename = '', json = '""') {
     )
 }
 
+//remove old data
+function removeOldData(count,data){
+    const dataNew = loadJSON('dataEmpty.json')
+    console.log(data.days.length)
+    console.log("removing old data")
+    for(var i = data.days.length-count; i<data.days.length; i++){
+        dataNew.days.push(data.days[i])
+    }
+    saveJSON('data.json',dataNew)
+}
 
 function logData(wind,temp){
     //take existing data
