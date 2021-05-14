@@ -38,7 +38,7 @@ const data = loadJSON('data.json')
 const dataCount = data.days.length
 
 //remove old data
-const count = 10
+const count = 5
 if(dataCount>count){
     removeOldData(count,data)
 }
